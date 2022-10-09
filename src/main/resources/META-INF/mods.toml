@@ -27,13 +27,13 @@ Addon integrating parts of Tinkers Construct with KubeJS
     versionRange="${minecraft_range}"
     ordering="NONE"
     side="BOTH"
-[[dependencies.tinkerjs_kubestruct]
+[[dependencies.tinkerjs_kubestruct]]
     modId="tconstruct"
     mandatory=true
     versionRange="${tinkers_range}"
     ordering="NONE"
     side="BOTH"
-[[dependencies.tinkerjs_kubestruct]
+[[dependencies.tinkerjs_kubestruct]]
     modId="kubejs"
     mandatory=true
     versionRange="${kubejs_range}"
