@@ -1,6 +1,7 @@
-package chiefarug.mods.tinkerjs_kubstruct.item;
+package chiefarug.mods.tinkerjs_kubestruct.item;
 
-import chiefarug.mods.tinkerjs_kubstruct.Util;
+import chiefarug.mods.tinkerjs_kubestruct.Util;
+import chiefarug.mods.tinkerjs_kubestruct.VirtualPacks;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -9,6 +10,7 @@ import dev.latvian.mods.kubejs.generator.AssetJsonGenerator;
 import dev.latvian.mods.kubejs.generator.DataJsonGenerator;
 import dev.latvian.mods.kubejs.item.ItemBuilder;
 import dev.latvian.mods.kubejs.item.ItemStackJS;
+import dev.latvian.mods.rhino.JavaScriptException;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
@@ -27,11 +29,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
-import static chiefarug.mods.tinkerjs_kubstruct.item.ModifiableItemBuilder.StatMultiplierType.*;
-import static chiefarug.mods.tinkerjs_kubstruct.item.PartPosition.CLEAVER_LAYOUT;
-import static chiefarug.mods.tinkerjs_kubstruct.item.PartPosition.DEFAULT_POSITIONS;
-import static chiefarug.mods.tinkerjs_kubstruct.item.PartPosition.PICKAXE_LAYOUT;
-import static chiefarug.mods.tinkerjs_kubstruct.item.PartPosition.SWORD_LAYOUT;
+import static chiefarug.mods.tinkerjs_kubestruct.TinkerJSKubestruct.LGGR;
+import static chiefarug.mods.tinkerjs_kubestruct.item.ModifiableItemBuilder.StatMultiplierType.*;
+import static chiefarug.mods.tinkerjs_kubestruct.item.PartPosition.CLEAVER_LAYOUT;
+import static chiefarug.mods.tinkerjs_kubestruct.item.PartPosition.DEFAULT_POSITIONS;
+import static chiefarug.mods.tinkerjs_kubestruct.item.PartPosition.PICKAXE_LAYOUT;
+import static chiefarug.mods.tinkerjs_kubestruct.item.PartPosition.SWORD_LAYOUT;
 import static slimeknights.tconstruct.common.TinkerTags.Items.*;
 
 @SuppressWarnings("unused")
@@ -43,12 +46,12 @@ public class ModifiableItemBuilder extends ItemBuilder {
 	public final List<ToolAction> actions = new ArrayList<>();
 	public final Map<String, Integer> slots = new HashMap<>();
 	public final Map<ResourceLocation, Integer> traits = new HashMap<>();
-	public final Map<IToolStat<?>, Integer> baseStats = new HashMap<>();
-	public final Map<IToolStat<?>, Integer> multiplierStats = new HashMap<>();
+	public final Map<IToolStat<?>, Float> baseStats = new HashMap<>();
+	public final Map<IToolStat<?>, Float> multiplierStats = new HashMap<>();
 	public JsonObject harvestLogicJson = new JsonObject();
 	public JsonObject attackLogicJson = new JsonObject();
 	public JsonObject aoeJson = new JsonObject();
-	public String description = "Custom Tool made with ♥ by KubeJS";
+	public String description = "Custom Tool made with ♥ by TinkerJS Kubestruct";
 	public static int currentLargeSortIndex = 15; // this just places them after all default tinkers tools
 	public transient int sortIndex;
 	public transient boolean attack;
@@ -58,6 +61,7 @@ public class ModifiableItemBuilder extends ItemBuilder {
 	public boolean interactionModifiers;
 	public boolean large;
 	private boolean finished;
+	private boolean hasRecipe = true;
 
 	public ModifiableItemBuilder(ResourceLocation i) {
 		super(i);
@@ -65,10 +69,16 @@ public class ModifiableItemBuilder extends ItemBuilder {
 		this.sortIndex = currentLargeSortIndex++;
 		this.held = true;
 		this.interactionModifiers = true;
+		VirtualPacks.INSTANCE.addBuilder(this);
 	}
 
 	public ModifiableItemBuilder part(PartJS part) {
 		parts.add(part);
+		return this;
+	}
+
+	public ModifiableItemBuilder noRecipe() {
+		hasRecipe = false;
 		return this;
 	}
 
@@ -126,6 +136,7 @@ public class ModifiableItemBuilder extends ItemBuilder {
 
 	public ModifiableItemBuilder boxAoe(int width, int height, int depth, String direction, int[] ...expansions) {
 		aoeJson = new JsonObject();
+		aoeJson.addProperty("type", "tconstruct:box");
 		aoeJson.add("bonus", boxJson(width, height, depth));
 
 		JsonObject expansionsJson = new JsonObject();
@@ -169,6 +180,7 @@ public class ModifiableItemBuilder extends ItemBuilder {
 
 	public ModifiableItemBuilder circleAoe(int diameter, boolean _3d) {
 		aoeJson = new JsonObject();
+		aoeJson.addProperty("type", "tconstruct:circle");
 		aoeJson.addProperty("diameter", diameter);
 		aoeJson.addProperty("3D", _3d);
 		return this;
@@ -180,6 +192,7 @@ public class ModifiableItemBuilder extends ItemBuilder {
 
 	public ModifiableItemBuilder treeAoe(int widthBonus, int depthBonus) {
 		aoeJson = new JsonObject();
+		aoeJson.addProperty("type", "tconstruct:tree");
 		aoeJson.addProperty("width_bonus", widthBonus);
 		aoeJson.addProperty("depth_bonus", depthBonus);
 		return this;
@@ -191,12 +204,14 @@ public class ModifiableItemBuilder extends ItemBuilder {
 
 	public ModifiableItemBuilder veinAoe(int distance) {
 		aoeJson = new JsonObject();
+		aoeJson.addProperty("type", "tconstruct:vein");
 		aoeJson.addProperty("max_distance", distance);
 		return this;
 	}
 
 	public ModifiableItemBuilder alternativeAoe(ResourceLocation tag, JsonObject match, JsonObject fallback) {
 		aoeJson = new JsonObject();
+		aoeJson.addProperty("type", "tconstruct:fallback");
 		aoeJson.addProperty("tag", tag.toString());
 		aoeJson.add("if_matches", match);
 		aoeJson.add("fallback", fallback);
@@ -215,11 +230,11 @@ public class ModifiableItemBuilder extends ItemBuilder {
 		base, modifier
 	}
 
-	public ModifiableItemBuilder statMultiplier(IToolStat<?> stat, int m) {
+	public ModifiableItemBuilder statMultiplier(IToolStat<?> stat, float m) {
 		return statMultiplier(modifier, stat, m);
 	}
 
-	public ModifiableItemBuilder statMultiplier(StatMultiplierType type, IToolStat<?> stat, int m) {
+	public ModifiableItemBuilder statMultiplier(StatMultiplierType type, IToolStat<?> stat, float m) {
 		switch (type) {
 			case base -> baseStats.put(stat, m);
 			case modifier -> multiplierStats.put(stat, m);
@@ -228,6 +243,7 @@ public class ModifiableItemBuilder extends ItemBuilder {
 	}
 
 	public ModifiableItemBuilder harvest(JsonObject json) {
+		harvest = true;
 		harvestLogicJson = json == null ? new JsonObject() : json;
 		return this;
 	}
@@ -282,6 +298,7 @@ public class ModifiableItemBuilder extends ItemBuilder {
 	}
 
 	public ModifiableItemBuilder attack(JsonObject json) {
+		attack = true;
 		attackLogicJson = json == null ? new JsonObject() : json;
 		return this;
 	}
@@ -320,7 +337,8 @@ public class ModifiableItemBuilder extends ItemBuilder {
 
 	public ModifiableItemBuilder large() {
 		large = true;
-		return this;
+		throw new UnsupportedOperationException("Large tools are not supported yet");
+		//return this;
 	}
 
 	public ModifiableItemBuilder small() {
@@ -329,17 +347,16 @@ public class ModifiableItemBuilder extends ItemBuilder {
 	}
 
 	private void checkLayout(String layoutName, int size) {
-		if (parts.size() != size) throw new IllegalStateException("Can only use " + layoutName + " layout with " + size + " parts");
+		if (parts.size() < 2) {
+			throw new IllegalStateException("Cannot use station layouts on less that 2 parts!");
+		} else if (parts.size() != size) {
+			throw new IllegalStateException("Can only use " + layoutName + " layout with " + size + " parts");
+		}
 	}
 
 	private void defaultLayout(String name, int numOfParts) {
 		checkLayout(name, numOfParts);
-		PartPosition.apply(parts, DEFAULT_POSITIONS[numOfParts - 1]);
-	}
-
-	public ModifiableItemBuilder centeredLayout() {
-		defaultLayout("centered", 0);
-		return this;
+		PartPosition.forceApply(parts, DEFAULT_POSITIONS[numOfParts - 1]);
 	}
 
 	public ModifiableItemBuilder daggerLayout() {
@@ -359,27 +376,26 @@ public class ModifiableItemBuilder extends ItemBuilder {
 
 	public ModifiableItemBuilder swordLayout() {
 		checkLayout("sword", 3);
-		PartPosition.apply(parts, SWORD_LAYOUT);
+		PartPosition.forceApply(parts, SWORD_LAYOUT);
 		return this;
 	}
 
 	public ModifiableItemBuilder pickaxeLayout() {
 		checkLayout("pickaxe", 3);
-		PartPosition.apply(parts, PICKAXE_LAYOUT);
-
+		PartPosition.forceApply(parts, PICKAXE_LAYOUT);
 		return this;
 	}
 
 	public ModifiableItemBuilder cleaverLayout() {
 		checkLayout("cleaver", 4);
-		PartPosition.apply(parts, CLEAVER_LAYOUT);
+		PartPosition.forceApply(parts, CLEAVER_LAYOUT);
 		return this;
 	}
 
 	@Override
 	public void generateAssetJsons(AssetJsonGenerator generator) {
 		if (modelJson != null) {
-			generator.json(AssetJsonGenerator.asItemModelLocation(id), modelJson);
+			generator.json(AssetJsonGenerator.asItemModelLocation(id), modelJson); //TODO: check if .json is needed here
 		} else {
 			JsonObject model = new JsonObject();
 			String baseTexture = texture != null ? texture : newID("item/", "").toString();
@@ -391,21 +407,10 @@ public class ModifiableItemBuilder extends ItemBuilder {
 
 			for (int i = 0, partsSize = parts.size(); i < partsSize; i++) {
 				PartJS part = parts.get(i);
-				String partId = part.id.getPath();
-				JsonObject partJson = new JsonObject();
-
-				PartJS.PartModelEntry partModelEntry = part.getTextureLocations(baseTexture, i);
-
-				partJson.addProperty("name", partId);
-				textureJson.addProperty(partId, partModelEntry.texture().toString());
-
-				if (partModelEntry.brokenTexture() != null) {
-					partJson.addProperty("broken", "broken_" + partId);
-					textureJson.addProperty("broken_" + partId, partModelEntry.brokenTexture().toString());
-				}
-
-				partJson.addProperty("index", partModelEntry.index());
-				partsArray.add(partJson);
+				// This method also handles adding information to the texture json.
+				// Its kinda ugly but it all needs the same information
+				JsonElement partModelJson = part.toItemModelJson(i, textureJson, baseTexture);
+				partsArray.add(partModelJson);
 			}
 			model.add("textures", textureJson);
 			model.add("parts", partsArray);
@@ -413,13 +418,27 @@ public class ModifiableItemBuilder extends ItemBuilder {
 			var modifierRoots = new JsonArray();
 			modifierRoots.add(baseTexture + '/');
 			model.add("modifier_roots", modifierRoots);
+			generator.json(new ResourceLocation(AssetJsonGenerator.asItemModelLocation(id) + ".json"), model);
 		}
 	}
 
 	@Override
 	public void generateDataJsons(DataJsonGenerator generator) {
-		generator.json(newID("tinkering/tool_definitions", ""), generateToolDefinitionJson());
-		generator.json(newID("tinkering/station_layouts", ""), generateStationLayoutJson());
+		// DO NOT FORGET THE .JSON
+		// At least for my impl of VirtualPacks. For KubeJS 🤷🏻‍
+		generator.json(newID("tinkering/tool_definitions/", ".json"), generateToolDefinitionJson());
+		if (parts.size() > 1) // Tinkers doesn't like station layouts with only one part
+			generator.json(newID("tinkering/station_layouts/", ".json"), generateStationLayoutJson());
+		if (hasRecipe) {
+			generator.json(newID("recipes/generated/", ""/*"".json"*/), generateRecipeJson());
+		}
+	}
+
+	private JsonObject generateRecipeJson() {
+		JsonObject json = new JsonObject();
+		json.addProperty("type", "tconstruct:tool_building");
+		json.addProperty("result", id.toString());
+		return json;
 	}
 
 	private JsonObject generateToolDefinitionJson() {
@@ -427,9 +446,7 @@ public class ModifiableItemBuilder extends ItemBuilder {
 
 		JsonArray partsJson = new JsonArray();
 		for (PartJS part : parts) {
-			JsonObject pj = new JsonObject();
-			pj.addProperty("item", part.id.toString());
-			partsJson.add(pj);
+			partsJson.add(part.toToolDefinitionJson());
 		}
 		json.add("parts", partsJson);
 
@@ -437,8 +454,8 @@ public class ModifiableItemBuilder extends ItemBuilder {
 		JsonObject baseStatsJson = new JsonObject();
 		JsonObject multiplierStatsJson = new JsonObject();
 
-		baseStats.forEach((stat, level) -> baseStatsJson.addProperty(stat.toString(), level));
-		multiplierStats.forEach((stat, level) -> multiplierStatsJson.addProperty(stat.toString(), level));
+		baseStats.forEach((stat, level) -> baseStatsJson.addProperty(stat.getName().toString(), level));
+		multiplierStats.forEach((stat, level) -> multiplierStatsJson.addProperty(stat.getName().toString(), level));
 		statsJson.add("base", baseStatsJson);
 		statsJson.add("multiplier", multiplierStatsJson);
 		json.add("stats", statsJson);
@@ -491,16 +508,11 @@ public class ModifiableItemBuilder extends ItemBuilder {
 
 		JsonArray inputSlotsJson = new JsonArray();
 		for (PartJS part : parts) {
-			JsonObject partJson = new JsonObject();
-			partJson.addProperty("icon", part.icon.toString());
-			partJson.addProperty("translationKey", part.translationKey);
-			partJson.addProperty("x", part.xPosition);
-			partJson.addProperty("y", part.yPosition);
-			partJson.add("filter", part.filter.get().toJson());
-			inputSlotsJson.add(partJson);
+			inputSlotsJson.add(part.toStationLayoutJson());
 		}
 		json.add("input_slots", inputSlotsJson);
 
+//		LGGR.info(json.toString());
 		return json;
 	}
 
@@ -519,8 +531,7 @@ public class ModifiableItemBuilder extends ItemBuilder {
 	}
 
 	public ToolDefinition createToolDefinition() {
-		// We don't actually care about any of the properties in here, at least for the moment.
-		return ToolDefinition.builder(id).build();
+		return ToolDefinition.builder(id).meleeHarvest().build();
 	}
 
 	@Override
@@ -533,6 +544,7 @@ public class ModifiableItemBuilder extends ItemBuilder {
 		if (finished) return;
 
 		// Apply a default layout if one is available
+		// Will ignore any manually set positions
 		if (parts.size() < DEFAULT_POSITIONS.length) {
 			PartPosition.apply(parts, DEFAULT_POSITIONS[parts.size()]);
 		}

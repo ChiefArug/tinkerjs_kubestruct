@@ -1,4 +1,4 @@
-package chiefarug.mods.tinkerjs_kubstruct.item;
+package chiefarug.mods.tinkerjs_kubestruct.item;
 
 import dev.latvian.mods.kubejs.item.ItemBuilder;
 import net.minecraft.resources.ResourceLocation;
@@ -9,7 +9,7 @@ import slimeknights.tconstruct.tools.stats.ExtraMaterialStats;
 import slimeknights.tconstruct.tools.stats.HandleMaterialStats;
 import slimeknights.tconstruct.tools.stats.HeadMaterialStats;
 
-import static chiefarug.mods.tinkerjs_kubstruct.item.PartItemBuilder.PartType.*;
+import static chiefarug.mods.tinkerjs_kubestruct.item.PartItemBuilder.PartType.*;
 
 public class PartItemBuilder extends ItemBuilder {
 

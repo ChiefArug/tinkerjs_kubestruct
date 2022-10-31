@@ -1,10 +1,10 @@
-package chiefarug.mods.tinkerjs_kubstruct;
+package chiefarug.mods.tinkerjs_kubestruct;
 
 import dev.latvian.mods.kubejs.script.ScriptType;
 import dev.latvian.mods.kubejs.util.MapJS;
+import net.minecraft.SharedConstants;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.Tier;
-import net.minecraftforge.common.TierSortingRegistry;
+import net.minecraft.server.packs.PackType;
 import net.minecraftforge.common.ToolAction;
 import org.jetbrains.annotations.Nullable;
 import slimeknights.tconstruct.library.tools.stat.IToolStat;
@@ -24,6 +24,13 @@ public class Util {
 	public static ResourceLocation newId(ResourceLocation id, String before, String after) {
 		if (before.isBlank() && after.isBlank()) return id;
 		return new ResourceLocation(id.getNamespace() + ':' + before + id.getPath() + after);
+	}
+
+	public static ToolStatId statId(String id) {
+		if (id.indexOf(':') == -1) {
+			return new ToolStatId("tconstruct:" + id);
+		}
+		return new ToolStatId(id);
 	}
 
 	@Nullable
@@ -47,25 +54,17 @@ public class Util {
 		} else if (o instanceof ResourceLocation rl) {
 			return ToolStats.getToolStat(new ToolStatId(rl));
 		} else if (o instanceof CharSequence cs) {
-			return ToolStats.getToolStat(new ToolStatId(cs.toString()));
-		}
-		return null;
-	}
-
-	@Nullable
-	public static Tier wrapTier(Object o) {
-		if (o instanceof Tier t) {
-			return t;
-		} else if (o instanceof ResourceLocation rl) {
-			return TierSortingRegistry.byName(rl);
-		} else if (o instanceof CharSequence cs) {
-			return TierSortingRegistry.byName(new ResourceLocation(cs.toString()));
+			return ToolStats.getToolStat(statId(cs.toString()));
 		}
 		return null;
 	}
 
 	public static void startupError(Object message) {
 		ScriptType.STARTUP.console.error(message);
+	}
+
+	public static int getCurrentPackVersion(PackType type) {
+		return type.getVersion(SharedConstants.getCurrentVersion());
 	}
 
 }

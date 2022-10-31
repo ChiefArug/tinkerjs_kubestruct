@@ -1,10 +1,10 @@
-package chiefarug.mods.tinkerjs_kubstruct.item;
+package chiefarug.mods.tinkerjs_kubestruct.item;
 
 import java.util.List;
 
-public class PartPosition {
+public record PartPosition(int x, int y) {
 
-	public static final PartPosition[] CENTERED_LAYOUT = {new PartPosition(37,45)};
+	public static final PartPosition[] CENTERED_LAYOUT = {new PartPosition(37, 45)}; // You cannot actually make a tool with one part craftable in the station, but I'm leaving this here, so I have something to fill the array with
 	public static final PartPosition[] DAGGER_LAYOUT = {new PartPosition(21, 53), new PartPosition(39, 35)};
 	public static final PartPosition[] AXE_LAYOUT = {new PartPosition(22, 53), new PartPosition(51, 34), new PartPosition(31, 22)};
 	public static final PartPosition[] HAMMER_LAYOUT = {new PartPosition(21, 52), new PartPosition(44, 29), new PartPosition(50, 48), new PartPosition(25, 20)};
@@ -26,11 +26,11 @@ public class PartPosition {
 		}
 	}
 
-	public final int x;
-	public final int y;
-
-	public PartPosition(int x, int y) {
-		this.x = x;
-		this.y = y;
+	public static void forceApply(List<PartJS> list, PartPosition[] layout) {
+		assert list.size() == layout.length;
+		for (int i = 0; i < layout.length; i++) {
+			list.get(i).updatePositions(layout[i]);
+		}
 	}
+
 }
