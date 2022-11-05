@@ -13,7 +13,6 @@ import slimeknights.tconstruct.library.tools.stat.ToolStats;
 
 public class Util {
 
-
 	public static ResourceLocation inputId(String id) {
 		if (id.indexOf(':') == -1) {
 			return new ResourceLocation("tconstruct:" + id);
@@ -48,6 +47,7 @@ public class Util {
 	}
 
 	@Nullable // I take back what I said about default values
+	// Me: a week later. What did I say about default values?
 	public static IToolStat<?> wrapToolStat(Object o) {
 		if (o instanceof IToolStat ts) {
 			return ts;

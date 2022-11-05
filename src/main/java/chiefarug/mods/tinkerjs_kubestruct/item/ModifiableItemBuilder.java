@@ -1,5 +1,6 @@
 package chiefarug.mods.tinkerjs_kubestruct.item;
 
+import chiefarug.mods.tinkerjs_kubestruct.FixedJsonGenerator;
 import chiefarug.mods.tinkerjs_kubestruct.Util;
 import chiefarug.mods.tinkerjs_kubestruct.VirtualPacks;
 import com.google.gson.JsonArray;
@@ -10,7 +11,6 @@ import dev.latvian.mods.kubejs.generator.AssetJsonGenerator;
 import dev.latvian.mods.kubejs.generator.DataJsonGenerator;
 import dev.latvian.mods.kubejs.item.ItemBuilder;
 import dev.latvian.mods.kubejs.item.ItemStackJS;
-import dev.latvian.mods.rhino.JavaScriptException;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
-import static chiefarug.mods.tinkerjs_kubestruct.TinkerJSKubestruct.LGGR;
 import static chiefarug.mods.tinkerjs_kubestruct.item.ModifiableItemBuilder.StatMultiplierType.*;
 import static chiefarug.mods.tinkerjs_kubestruct.item.PartPosition.CLEAVER_LAYOUT;
 import static chiefarug.mods.tinkerjs_kubestruct.item.PartPosition.DEFAULT_POSITIONS;
@@ -60,8 +59,10 @@ public class ModifiableItemBuilder extends ItemBuilder {
 	public boolean held;
 	public boolean interactionModifiers;
 	public boolean large;
+	public boolean hasDurability = true;
 	private boolean finished;
 	private boolean hasRecipe = true;
+	public List<ResourceLocation> modifierTextureRoots = new ArrayList<>();
 
 	public ModifiableItemBuilder(ResourceLocation i) {
 		super(i);
@@ -338,7 +339,7 @@ public class ModifiableItemBuilder extends ItemBuilder {
 	public ModifiableItemBuilder large() {
 		large = true;
 		throw new UnsupportedOperationException("Large tools are not supported yet");
-		//return this;
+//		return this;
 	}
 
 	public ModifiableItemBuilder small() {
@@ -392,20 +393,27 @@ public class ModifiableItemBuilder extends ItemBuilder {
 		return this;
 	}
 
-	@Override
-	public void generateAssetJsons(AssetJsonGenerator generator) {
+	public ModifiableItemBuilder addModifierTextureLocation(ResourceLocation rl) {
+		this.modifierTextureRoots.add(rl);
+		return this;
+	}
+
+	@Override // Don't generate regular model files
+	public void generateAssetJsons(AssetJsonGenerator g) {}
+
+	public void generateAssetJsons(FixedJsonGenerator generator) {
 		if (modelJson != null) {
-			generator.json(AssetJsonGenerator.asItemModelLocation(id), modelJson); //TODO: check if .json is needed here
+			generator.json(itemModelLocation(id), modelJson);
 		} else {
 			JsonObject model = new JsonObject();
-			String baseTexture = texture != null ? texture : newID("item/", "").toString();
+			String baseTexture = texture != null ? texture : newID("item/", "/").toString();
 
 			model.addProperty("loader", "tconstruct:tool");
 			model.addProperty("parent", "forge:item/default-tool");
 
 			var partsArray = new JsonArray();
 
-			for (int i = 0, partsSize = parts.size(); i < partsSize; i++) {
+			for (int i = 0; i < parts.size(); i++) {
 				PartJS part = parts.get(i);
 				// This method also handles adding information to the texture json.
 				// Its kinda ugly but it all needs the same information
@@ -416,21 +424,29 @@ public class ModifiableItemBuilder extends ItemBuilder {
 			model.add("parts", partsArray);
 
 			var modifierRoots = new JsonArray();
-			modifierRoots.add(baseTexture + '/');
+			this.modifierTextureRoots.forEach(location -> modifierRoots.add(location.toString()));
+			modifierRoots.add(baseTexture + "modifiers/");
 			model.add("modifier_roots", modifierRoots);
-			generator.json(new ResourceLocation(AssetJsonGenerator.asItemModelLocation(id) + ".json"), model);
+
+			generator.json(itemModelLocation(id), model);
 		}
 	}
 
+	private ResourceLocation itemModelLocation(ResourceLocation id) {
+		return new ResourceLocation(id.getNamespace(), "models/item/" + id.getPath() + ".json");
+	}
+
 	@Override
-	public void generateDataJsons(DataJsonGenerator generator) {
+	public void generateDataJsons(DataJsonGenerator gen) {}
+
+	public void generateDataJsons(FixedJsonGenerator generator) {
 		// DO NOT FORGET THE .JSON
 		// At least for my impl of VirtualPacks. For KubeJS 🤷🏻‍
 		generator.json(newID("tinkering/tool_definitions/", ".json"), generateToolDefinitionJson());
-		if (parts.size() > 1) // Tinkers doesn't like station layouts with only one part
+		if (parts.size() > 1) // Tinker's doesn't like station layouts with only one part
 			generator.json(newID("tinkering/station_layouts/", ".json"), generateStationLayoutJson());
 		if (hasRecipe) {
-			generator.json(newID("recipes/generated/", ""/*"".json"*/), generateRecipeJson());
+			generator.json(newID("recipes/generated/", ".json"), generateRecipeJson());
 		}
 	}
 
@@ -548,12 +564,14 @@ public class ModifiableItemBuilder extends ItemBuilder {
 		if (parts.size() < DEFAULT_POSITIONS.length) {
 			PartPosition.apply(parts, DEFAULT_POSITIONS[parts.size()]);
 		}
+		// Apply tags based on set properties
 		applyTags();
 
 		finished = true;
 	}
 
 	private void applyTags() {
+		// Tags are from TinkerTags
 		if (parts.size() > 1)
 			tag(MULTIPART_TOOL);
 		if (harvest)
@@ -571,5 +589,7 @@ public class ModifiableItemBuilder extends ItemBuilder {
 			tag(HELD);
 		if (interactionModifiers)
 			tag(INTERACTABLE);
+		if (hasDurability)
+			tag(DURABILITY);
 	}
 }

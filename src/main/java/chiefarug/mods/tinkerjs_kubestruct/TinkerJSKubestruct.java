@@ -6,6 +6,10 @@ import net.minecraftforge.fml.common.Mod;
 import org.slf4j.Logger;
 
 import java.io.File;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.OpenOption;
+import java.nio.file.Path;
 
 import static chiefarug.mods.tinkerjs_kubestruct.TinkerJSKubestruct.MODID;
 
@@ -16,11 +20,7 @@ public class TinkerJSKubestruct {
 	@SuppressWarnings("unused")
 	public static final Logger LGGR = LogUtils.getLogger();
 
-	public TinkerJSKubestruct() {
-
-    }
-
-	public static File getFileByID(String path) {
-		return ModList.get().getModFileById(MODID).getFile().findResource(path).toFile();
+	public static Path getPathByID(String path) {
+		return ModList.get().getModFileById(MODID).getFile().findResource(path);
 	}
 }

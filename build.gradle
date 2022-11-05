@@ -175,7 +175,7 @@ def modsTomlSpec = copySpec {
 }
 
 def buildPaths = [
-    "$rootDir/build/resources", // IDEA
+    "$rootDir/out/production/resources", //IDEA - updated
     "$rootDir/bin", // Eclipse
 ]
 

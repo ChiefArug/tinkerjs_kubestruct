@@ -18,7 +18,7 @@ public class TinkerJSKubestructKubeJSPlugin extends KubeJSPlugin {
 
 	@Override
 	public void init() {
-		RegistryObjectBuilderTypes.ITEM.addType("tconstruct:modifiable", ModifiableItemBuilder.class, ModifiableItemBuilder::new);
+			RegistryObjectBuilderTypes.ITEM.addType("tconstruct:modifiable", ModifiableItemBuilder.class, ModifiableItemBuilder::new);
 	}
 
 	@Override
@@ -34,12 +34,8 @@ public class TinkerJSKubestructKubeJSPlugin extends KubeJSPlugin {
 	}
 
 	@Override
-	public void generateAssetJsons(AssetJsonGenerator generator) {
-		VirtualPacks.INSTANCE.generateAssetJsons();
-	}
+	public void generateAssetJsons(AssetJsonGenerator generator) {}
 
 	@Override
-	public void generateDataJsons(DataJsonGenerator generator) {
-		VirtualPacks.INSTANCE.generateDataJsons();
-	}
+	public void generateDataJsons(DataJsonGenerator generator) {}
 }
