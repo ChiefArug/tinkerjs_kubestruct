@@ -56,7 +56,7 @@ public class ModifiableItemBuilder extends ItemBuilder {
 	public transient boolean attack;
 	public transient boolean harvest;
 	public transient Boolean harvestMain;
-	public boolean held;
+	public boolean held = true;
 	public boolean interactionModifiers;
 	public boolean large;
 	public boolean hasDurability = true;
@@ -66,11 +66,14 @@ public class ModifiableItemBuilder extends ItemBuilder {
 
 	public ModifiableItemBuilder(ResourceLocation i) {
 		super(i);
-		tag(new ResourceLocation("tconstruct:modifiable"));
 		this.sortIndex = currentLargeSortIndex++;
-		this.held = true;
 		this.interactionModifiers = true;
 		VirtualPacks.INSTANCE.addBuilder(this);
+	}
+
+	public ModifiableItemBuilder description(String description) {
+		this.description = description;
+		return this;
 	}
 
 	public ModifiableItemBuilder part(PartJS part) {
@@ -107,17 +110,20 @@ public class ModifiableItemBuilder extends ItemBuilder {
 		return this;
 	}
 
-	public ModifiableItemBuilder trait(ResourceLocation trait) {
+	public ModifiableItemBuilder trait(String trait) {
 		return trait(trait, 1);
 	}
 
-	public ModifiableItemBuilder trait(ResourceLocation trait, int level) {
-		traits.put(trait, level);
+	public ModifiableItemBuilder trait(String trait, int level) {
+		traits.put(Util.inputId(trait), level);
 		return this;
 	}
 
 	public ModifiableItemBuilder action(ToolAction action) {
-		actions.add(action);
+		if (action != null)
+			actions.add(action);
+		else
+			throw new NullPointerException("Invalid/null tool action");
 		return this;
 	}
 
@@ -127,56 +133,54 @@ public class ModifiableItemBuilder extends ItemBuilder {
 		return this;
 	}
 
-	private JsonObject boxJson(int w, int h, int d) {
+	private JsonObject boxJson(int[] box) {
 		JsonObject json = new JsonObject();
-		json.addProperty("width", w);
-		json.addProperty("height", h);
-		json.addProperty("depth", d);
+		switch (box.length) {
+			case 3:
+				json.addProperty("depth", box[2]);
+			case 2:
+				json.addProperty("height", box[1]);
+			case 1: { // fallthrough my beloved
+				json.addProperty("width", box[0]);
+				break;
+			}
+			default: {
+				if (box.length > 3)
+					throw new IllegalArgumentException("Box too large for custom tool " + id + ", maximum of three directions (width, height, depth)");
+				else
+					throw new IllegalArgumentException("Box too small for custom tool " + id + ", minimum of one direction (width, height, depth)");
+			}
+		}
 		return json;
 	}
 
-	public ModifiableItemBuilder boxAoe(int width, int height, int depth, String direction, int[] ...expansions) {
+	public ModifiableItemBuilder boxAoe(String direction, int bonusWidth, int bonusHeight, int bonusDepth, int[] ...expansions) {
 		aoeJson = new JsonObject();
 		aoeJson.addProperty("type", "tconstruct:box");
-		aoeJson.add("bonus", boxJson(width, height, depth));
+		aoeJson.add("bonus", boxJson(new int[]{bonusWidth, bonusHeight, bonusDepth}));
 
-		JsonObject expansionsJson = new JsonObject();
-		for (int i = 0, expansionsLength = expansions.length; i < expansionsLength; i++) {
-			int[] expansion = expansions[i];
-			switch (expansion.length) {
-				case 3: expansionsJson.addProperty("depth", expansion[2]);
-				case 2: expansionsJson.addProperty("height", expansion[1]);
-				case 1: { // fallthrough my beloved
-					expansionsJson.addProperty("width", expansion[0]);
-					break;
-				}
-				default: {
-					if (expansion.length > 3) {
-						throw new IllegalArgumentException("Expansion " + i + " too large, maximum of three directions (width, height, depth)");
-					} else {
-						throw new IllegalArgumentException("Expansion " + i + " too small, minimum of one direction (width, height, depth)");
-					}
-				}
-			}
+		JsonArray expansionsJson = new JsonArray();
+		for (int[] expansion : expansions) {
+			expansionsJson.add(boxJson(expansion));
 		}
 
 		if (expansionsJson.size() > 0)
 			aoeJson.add("expansions", expansionsJson);
 
-		aoeJson.addProperty("expansion_direction", direction);
+		aoeJson.addProperty("expansion_direction", Util.inputId(direction).toString());
 		return this;
 	}
 
-	public ModifiableItemBuilder boxAoe(int width, int height, int depth, int[] ...expansions) {
-		return boxAoe(width, height, depth, "side_hit", expansions);
+	public ModifiableItemBuilder boxAoe(String direction, int[][] expansions) {
+		return boxAoe(direction, 0, 0, 0, expansions);
 	}
 
-	public ModifiableItemBuilder boxAoe(String direction, int[] ...expansions) {
-		return boxAoe(0, 0, 0, direction, expansions);
+	public ModifiableItemBuilder boxAoe(int[][] expansions) {
+		return boxAoe("side_hit", 0, 0, 0, expansions);
 	}
 
-	public ModifiableItemBuilder boxAoe(int[] ...expansions) {
-		return boxAoe("side_hit", expansions);
+	public ModifiableItemBuilder boxAoe(String direction) {
+		return boxAoe(direction, new int[0][0]);
 	}
 
 	public ModifiableItemBuilder circleAoe(int diameter, boolean _3d) {
@@ -300,7 +304,7 @@ public class ModifiableItemBuilder extends ItemBuilder {
 
 	public ModifiableItemBuilder attack(JsonObject json) {
 		attack = true;
-		attackLogicJson = json == null ? new JsonObject() : json;
+		attackLogicJson = json;
 		return this;
 	}
 
@@ -499,11 +503,14 @@ public class ModifiableItemBuilder extends ItemBuilder {
 
 		if (harvest) {
 			JsonObject harvestJson = new JsonObject();
-			harvestJson.add("logic", harvestLogicJson);
-			harvestJson.add("aoe", aoeJson);
-			json.add("harvest", harvestJson);
+			if (harvestLogicJson.size() > 0)
+				harvestJson.add("logic", harvestLogicJson);
+			if (aoeJson.size() != 0) // if its not empty
+				harvestJson.add("aoe", aoeJson);
+			if (harvestJson.size() > 0)
+				json.add("harvest", harvestJson);
 		}
-		if (attack)
+		if (attack && attackLogicJson.size() > 0)
 			json.add("attack", attackLogicJson);
 
 		return json;
@@ -578,8 +585,7 @@ public class ModifiableItemBuilder extends ItemBuilder {
 			tag(HARVEST);
 		if (attack)
 			tag(MELEE);
-		if (attack && harvest)
-			tag(MELEE_OR_HARVEST);
+		// melee_or_harvest is automatically applied by tinkers
 		if (harvestMain != null)
 			if (harvestMain)
 				tag(HARVEST_PRIMARY);
@@ -591,5 +597,11 @@ public class ModifiableItemBuilder extends ItemBuilder {
 			tag(INTERACTABLE);
 		if (hasDurability)
 			tag(DURABILITY);
+		if (aoeJson.size() > 0)
+			tag(AOE);
+		// misc un-configurable tags
+		tag(ONE_HANDED);
+		tag(INTERACTABLE);
+		tag(MODIFIABLE);
 	}
 }

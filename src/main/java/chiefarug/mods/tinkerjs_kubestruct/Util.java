@@ -13,6 +13,11 @@ import slimeknights.tconstruct.library.tools.stat.ToolStats;
 
 public class Util {
 
+	/**
+	 * Helper util for constructing a RL with a default namespace of tconstruct
+	 * @param id A ResourceLocation, or the path of one
+	 * @return A new ResourceLocation with a namespace of tconstruct if none provided
+	 */
 	public static ResourceLocation inputId(String id) {
 		if (id.indexOf(':') == -1) {
 			return new ResourceLocation("tconstruct:" + id);

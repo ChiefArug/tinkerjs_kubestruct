@@ -23,4 +23,6 @@ public class TinkerJSKubestruct {
 	public static Path getPathByID(String path) {
 		return ModList.get().getModFileById(MODID).getFile().findResource(path);
 	}
+
+	//TODO: custom slimeknights.tconstruct.library.tools.part.ToolPartItem
 }
