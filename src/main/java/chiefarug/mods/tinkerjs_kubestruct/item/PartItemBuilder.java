@@ -17,11 +17,11 @@ public class PartItemBuilder extends ItemBuilder {
 
 	public PartItemBuilder(ResourceLocation i) {
 		super(i);
-		type = HEAD;
+		type = head;
 	}
 
 	public enum PartType {
-		EXTRA(ExtraMaterialStats.ID), HANDLE(HandleMaterialStats.ID), HEAD(HeadMaterialStats.ID);
+		extra(ExtraMaterialStats.ID), handle(HandleMaterialStats.ID), head(HeadMaterialStats.ID);
 		private final MaterialStatsId statsId;
 
 		PartType(MaterialStatsId statsId) {
@@ -33,17 +33,22 @@ public class PartItemBuilder extends ItemBuilder {
 		}
 	}
 
-	public PartItemBuilder partType(PartType type) { // Would be nice if this could just be type
+	public PartItemBuilder type(PartType type) {
 		this.type = type;
 		return this;
 	}
 
 	public PartJS getPart() {
-		return new PartJS(id.toString(), id, id.getPath(), type == HEAD ? "broken_" + id.getPath() : null, -1, -1, PartJS.ingredientSupplier(get()), "item." + id.getNamespace() + "." + id.getPath());
+		return new PartJS(id.toString(), id, id.getPath(), type == head ? "broken_" + id.getPath() : null, -1, -1, PartJS.ingredientSupplier(get()), "item." + id.getNamespace() + "." + id.getPath());
 	}
 
 	@Override
 	public Item createObject() {
+		String partKey = id.toString();
+		if (id.getNamespace().equals("tconstruct")) {
+			partKey = id.getNamespace(); // If it is in the tinkers namespace then add that to the default parts map because it's probably overriding an existing part
+		}
+		PartJSWrapper.DEFAULT_PARTS.put(partKey, this.getPart());
 		return new ToolPartItem(createItemProperties(), type.getStatsId());
 	}
 }

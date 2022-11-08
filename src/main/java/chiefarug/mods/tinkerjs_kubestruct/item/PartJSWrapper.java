@@ -40,6 +40,9 @@ public class PartJSWrapper {
 
 
 	public static PartJS of(String id) {
+		if (DEFAULT_PARTS.containsKey(id)) {
+			return DEFAULT_PARTS.get(id).copy();
+		}
 		return new PartJS(id, PartJS.iconFromId(id), PartJS.toolTextureFromId(id), null, PartJS.defaultX(), PartJS.defaultY(), PartJS.filterFromId(id), PartJS.translationKeyFromId(id));
 	}
 

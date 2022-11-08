@@ -1,6 +1,7 @@
 package chiefarug.mods.tinkerjs_kubestruct;
 
 import chiefarug.mods.tinkerjs_kubestruct.item.ModifiableItemBuilder;
+import chiefarug.mods.tinkerjs_kubestruct.item.PartItemBuilder;
 import chiefarug.mods.tinkerjs_kubestruct.item.PartJS;
 import chiefarug.mods.tinkerjs_kubestruct.item.PartJSWrapper;
 import dev.latvian.mods.kubejs.KubeJSPlugin;
@@ -19,6 +20,7 @@ public class TinkerJSKubestructKubeJSPlugin extends KubeJSPlugin {
 	@Override
 	public void init() {
 			RegistryObjectBuilderTypes.ITEM.addType("tconstruct:modifiable", ModifiableItemBuilder.class, ModifiableItemBuilder::new);
+			RegistryObjectBuilderTypes.ITEM.addType("tconstruct:part", PartItemBuilder.class, PartItemBuilder::new);
 	}
 
 	@Override

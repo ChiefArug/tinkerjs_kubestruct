@@ -5,10 +5,6 @@ import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.common.Mod;
 import org.slf4j.Logger;
 
-import java.io.File;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.OpenOption;
 import java.nio.file.Path;
 
 import static chiefarug.mods.tinkerjs_kubestruct.TinkerJSKubestruct.MODID;
